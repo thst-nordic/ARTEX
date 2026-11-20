@@ -3,6 +3,7 @@
 // a few fields the backend serializes differently (e.g. created_at as a unix int)
 // are passed through and formatted at the call site.
 
+import { basePath, withBasePath } from "@/lib/base-path";
 import { t } from "@/i18n";
 import type { ChatMention } from "@/lib/chat-mentions";
 import { MOCK } from "@/lib/mock/enabled";
@@ -137,7 +138,7 @@ export class ApiError extends Error {
 export async function http<T>(path: string, init?: RequestInit): Promise<T> {
   if (MOCK) return mockHandle<T>(init?.method ?? "GET", path, init?.body ?? null);
   const token = getToken();
-  const r = await fetch(`/api${path}`, {
+  const r = await fetch(withBasePath(`/api${path}`), {
     ...init,
     headers: {
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
@@ -148,8 +149,8 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
   if (r.status === 401) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("artex_token");
-      document.cookie = "artex_token=; path=/; max-age=0";
-      window.location.href = "/login";
+      document.cookie = `artex_token=; path=${basePath || "/"}; max-age=0`;
+      window.location.href = withBasePath("/login");
     }
     throw new Error(t("Unauthorized"));
   }
@@ -218,7 +219,7 @@ export function sseUrl(path: string): string {
       ? `${window.location.protocol}//${window.location.hostname}:8787`
       : "");
   if (!base) {
-    return path;
+    return withBasePath(path);
   }
   const token = getToken();
   const sep = path.includes("?") ? "&" : "?";
@@ -488,7 +489,7 @@ export const api = {
     const fd = new FormData();
     for (const f of files) fd.append("file", f);
     const token = getToken();
-    const r = await fetch(`/api/workspace/upload?path=${encodeURIComponent(dir)}`, {
+    const r = await fetch(withBasePath(`/api/workspace/upload?path=${encodeURIComponent(dir)}`), {
       method: "POST",
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: fd,
@@ -502,7 +503,7 @@ export const api = {
       blob = new Blob([`(demo) Sample download content of ${path}.`], { type: "text/plain" });
     } else {
       const token = getToken();
-      const r = await fetch(`/api/workspace/download?path=${encodeURIComponent(path)}`, {
+      const r = await fetch(withBasePath(`/api/workspace/download?path=${encodeURIComponent(path)}`), {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       if (!r.ok) throw new Error(t("Download failed: {error}", { error: r.status }));
@@ -616,7 +617,7 @@ export const api = {
       for (const [k, v] of findingFilterParams(opts.filters)) p.set(k, v);
     }
     const token = getToken();
-    const r = await fetch(`/api/exploration/findings/export?${p.toString()}`, {
+    const r = await fetch(withBasePath(`/api/exploration/findings/export?${p.toString()}`), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!r.ok) throw new Error(t("Export failed: {error}", { error: r.status }));
@@ -690,7 +691,9 @@ export const api = {
   ) => {
     const token = getToken();
     const response = await fetch(
-      `/api/exploration/findings/${id}/traffic/${bindingId}/body?side=${side}&download=1${contextTask ? `&context_task=${encodeURIComponent(contextTask)}` : ""}`,
+      withBasePath(
+        `/api/exploration/findings/${id}/traffic/${bindingId}/body?side=${side}&download=1${contextTask ? `&context_task=${encodeURIComponent(contextTask)}` : ""}`,
+      ),
       { headers: token ? { Authorization: `Bearer ${token}` } : {} },
     );
     if (!response.ok) {
@@ -872,7 +875,7 @@ export const api = {
   trafficBlob: async (hash: string) => {
     if (MOCK) throw new Error(t("Blob download is not available in mock mode"));
     const token = getToken();
-    const r = await fetch(`/api/traffic/blob?hash=${encodeURIComponent(hash)}`, {
+    const r = await fetch(withBasePath(`/api/traffic/blob?hash=${encodeURIComponent(hash)}`), {
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     });
     if (!r.ok) throw new Error(t("Blob download failed: {error}", { error: r.status }));
@@ -923,14 +926,14 @@ export const api = {
     if (opts.respMax) qs.set("resp_max", opts.respMax);
     const suffix = qs.toString();
     const token = getToken();
-    const r = await fetch(`/api/traffic/export/har${suffix ? `?${suffix}` : ""}`, {
+    const r = await fetch(withBasePath(`/api/traffic/export/har${suffix ? `?${suffix}` : ""}`), {
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     });
     if (r.status === 401) {
       if (typeof window !== "undefined") {
         localStorage.removeItem("artex_token");
-        document.cookie = "artex_token=; path=/; max-age=0";
-        window.location.href = "/login";
+        document.cookie = `artex_token=; path=${basePath || "/"}; max-age=0`;
+        window.location.href = withBasePath("/login");
       }
       throw new Error(t("Unauthorized"));
     }
@@ -1024,7 +1027,7 @@ export const api = {
   report: async (task?: string) => {
     if (MOCK) return mockReport(task);
     const token = getToken();
-    const r = await fetch(`/api/report${tq(task)}`, {
+    const r = await fetch(withBasePath(`/api/report${tq(task)}`), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!r.ok) throw new Error(t("Report failed: {error}", { error: r.status }));
@@ -1056,7 +1059,7 @@ export const api = {
     const fd = new FormData();
     for (const f of files) fd.append("file", f);
     const token = getToken();
-    const r = await fetch(`/api/chat/upload?scope=${scope}&id=${encodeURIComponent(id)}`, {
+    const r = await fetch(withBasePath(`/api/chat/upload?scope=${scope}&id=${encodeURIComponent(id)}`), {
       method: "POST",
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: fd,
@@ -1319,7 +1322,7 @@ export const api = {
     const fd = new FormData();
     fd.append("file", file);
     const token = getToken();
-    const r = await fetch(`/api/skills/upload${overwrite ? "?overwrite=true" : ""}`, {
+    const r = await fetch(withBasePath(`/api/skills/upload${overwrite ? "?overwrite=true" : ""}`), {
       method: "POST",
       body: fd,
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -1414,7 +1417,7 @@ export const api = {
   interceptGetToolConfig: async (): Promise<{ enabled_tools: string[] }> => {
     if (MOCK) return { enabled_tools: ["bash"] };
     const token = getToken();
-    const r = await fetch("/api/intercept/tool-config", {
+    const r = await fetch(withBasePath("/api/intercept/tool-config"), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!r.ok) throw new Error(await r.text());
@@ -1423,7 +1426,7 @@ export const api = {
   interceptSetToolConfig: async (enabledTools: string[]): Promise<void> => {
     if (MOCK) return;
     const token = getToken();
-    const r = await fetch("/api/intercept/tool-config", {
+    const r = await fetch(withBasePath("/api/intercept/tool-config"), {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

@@ -6,6 +6,7 @@ import * as React from "react";
 import { AppSidebar } from "@/app/(main)/_components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { auth } from "@/lib/auth";
+import { withBasePath } from "@/lib/base-path";
 import { getClientCookie } from "@/lib/cookie.client";
 import {
   SIDEBAR_COLLAPSIBLE_VALUES,
@@ -41,7 +42,7 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
       // by "cookie exists" alone, would bounce us from /login back to the main UI and ping-pong with this guard
       // in an infinite redirect → blank screen (triggered when cookie and localStorage disagree).
       auth.clearToken();
-      window.location.href = "/login";
+      window.location.href = withBasePath("/login");
     }
   }, []);
 

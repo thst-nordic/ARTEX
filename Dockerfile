@@ -14,6 +14,9 @@
 # Pinned to the Node 22 line the CI/release workflows use. On the build platform
 # only; the frontend static export is architecture-independent.
 FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web
+# Subpath UI (e.g. dev-ci.nordicsemi.no/artex/); override empty for root-hosted images.
+ARG NEXT_PUBLIC_BASE_PATH=/artex
+ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 WORKDIR /src/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --ignore-scripts

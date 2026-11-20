@@ -1,5 +1,8 @@
+import { basePath } from "@/lib/base-path";
+
 const TOKEN_KEY = "artex_token";
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days (seconds)
+const cookiePath = basePath || "/";
 
 export interface CurrentUser {
   id: string;
@@ -20,12 +23,12 @@ export const auth = {
   setToken(token: string): void {
     localStorage.setItem(TOKEN_KEY, token);
     // Also write a cookie for the Next.js middleware to read server-side
-    document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
+    document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=${cookiePath}; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
   },
 
   clearToken(): void {
     localStorage.removeItem(TOKEN_KEY);
-    document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
+    document.cookie = `${TOKEN_KEY}=; path=${cookiePath}; max-age=0`;
   },
 
   // Parse the current user from the JWT payload's sub field; display only, no signature verification.

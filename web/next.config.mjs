@@ -5,9 +5,12 @@ import { fileURLToPath } from "node:url";
 const isExport = process.env.NEXT_EXPORT === "1";
 // Vercel demo: the whole site runs on mock, no backend, no /api reverse proxy needed.
 const isMock = process.env.NEXT_PUBLIC_MOCK === "1";
+// Subpath deploy (e.g. https://dev-ci.example.com/artex/). Empty at site root (local dev).
+const basePath = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/$/, "");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  ...(basePath ? { basePath } : {}),
   // Prevent a parent directory's lockfile from affecting root inference and asset path generation.
   turbopack: { root: fileURLToPath(new URL(".", import.meta.url)) },
   reactCompiler: true,
@@ -34,7 +37,8 @@ const nextConfig = {
           // Dev: reverse-proxy /api/* to the Go backend (default :8787, override with AUTOPENTEST_API).
           async rewrites() {
             const backend = process.env.AUTOPENTEST_API ?? "http://localhost:8787";
-            return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
+            const apiPrefix = basePath ? `${basePath}/api` : "/api";
+            return [{ source: `${apiPrefix}/:path*`, destination: `${backend}/api/:path*` }];
           },
         }),
 };
